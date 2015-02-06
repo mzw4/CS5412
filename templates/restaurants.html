@@ -11,26 +11,52 @@
     <script src="https://maps.googleapis.com/maps/api/js?v=3&sensor=false"></script>
     
     <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/handlebars-v2.0.0.js') }}"></script>
     <script src="{{ url_for('static', filename='js/restaurants.js') }}"></script>
+
+    <script src="../static/js/handlebars-v2.0.0.js"></script>
+    <script src="../static/js/restaurants.js"></script>
   </head>
 
   <body>
     <div class="main_container container">
 
-      <div class="input_panel">
-        <div class="text_large padding_30">Find restaurants near...</div>
-        <form id="loc_input_form" class="form-inline">
+      <div id="input_panel">
+        <form id="loc_input_form" class="center_text">
+          <div class="main_text text_large">Find restaurants near...</div>
           <div class="form-group input_form_group">
             <input type="text" class="form-control" id="loc_input_field" placeholder="Address">
           </div>
-          <button type="submit" class="btn btn-default">Search</button>
+          <div class="main_text text_large">Within...</div>
+          <div class="form-group input-group">
+            <input type="number" step="0.1" placeholder="distance" class="form-control" id="loc_input_field" placeholder="Address" describedby="addon1">
+            <span class="input-group-addon" id="addon1">miles</span>
+          </div>
+          <button id="submit_button" type="submit" class="btn btn-default">Search</button>
         </form>
+
+        <div id="info_panel">
+          <div class="results_text text_large">Results...</div>
+          <ul id="results" class="list-group"></ul>
+        </div>
+
+        <img id="spinner" src="{{ url_for('static', filename='assets/ajax-loader.gif') }}">
+        <!-- <div class="loading"></div> -->
       </div>
-      
-      <div class="info_panel"></div>
 
       <div id="map-canvas"></div>
     </div>
   </body>
 
-</html?
+</html>
+
+<script id="restaurant_item_template" type="text/x-handlebars-template">
+  <li class="list-group-item" data-name="{{name}}">
+    <span>{{name}}</span>
+    <div class="restaurant_details">
+      <div>Address: {{loc}}</div>
+      <div>Coordinates: {{lat}}, {{lng}}</div>
+      <div>Distance: {{dist}}</div>
+    </div>
+  </li>
+</script>

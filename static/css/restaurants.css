@@ -17,23 +17,56 @@ body {
 
 /* ---------------- Input panel ---------------- */
 
-.input_panel {
-  position: relative;
-  padding-top: 30px;
+#input_panel {
+  padding: 30px;
+  padding-right: 45px;
   float: left;
+  min-height: 100%;
+  position: relative;
+  width: 30%;
 }
 
-#loc_input_form {
-  width: 100%;
-  padding: 0 30px;
+#info_panel {
+  float: left;
+  padding-top: 30px;
+  width: 98%;
+  display: none;
 }
 
-.input_form_group {
-  width: 75%;
+#results {
+  overflow: auto;
 }
 
-#loc_input_field {
-  width: 100%;
+#results li:hover {
+  background-color: #e6e6e6;
+}
+
+.results_text {
+  padding-bottom: 30px;
+}
+
+#spinner {
+  display: block;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin: auto;
+  width: 20px;
+  display: none;
+}
+
+.loading {
+  background-color: #000;
+  opacity: 20%;
+}
+
+.main_text {
+  text-align: left;
+  padding-bottom: 15px;
+}
+
+.restaurant_item .details {
+  display: none;
 }
 
 /* ---------------- Map panel ---------------- */

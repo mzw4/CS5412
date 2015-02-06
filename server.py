@@ -12,7 +12,9 @@ def ajax_find_restaurants():
   if request.method == 'POST':
     location = request.form['input_location']
     print location
-    return jsonify(find_nearest('Ft Lauderdale, FL 33324', 1))
+
+    input_data, results = find_nearest('Ft Lauderdale, FL 33324', 1)
+    return jsonify({ 'input_data': input_data, 'results': results })
   else:
     return 'Error'
 

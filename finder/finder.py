@@ -65,7 +65,7 @@ def find_nearest(input_addr, distance_threshold):
   for line in db:
     restaurant = line.split(',')
     zipcode = restaurant[7]
-    location = ','.join(restaurant[4:8])
+    location = ', '.join(restaurant[4:8])
 
     restaurant_loc_map[location] = restaurant
 
@@ -87,17 +87,15 @@ def find_nearest(input_addr, distance_threshold):
   db.seek(0)
 
   print 'Filtering results...'
-  # print distance_map
-  nearby_restaurants = []
+  nearby_restaurants = {}
   for loc, (latlng, dist) in distance_map.items():
     if dist < distance_threshold:
-      print dist, restaurant_loc_map[loc][4:8], restaurant_loc_map[loc][3]
-
+      # print dist, restaurant_loc_map[loc][4:8], restaurant_loc_map[loc][3]
       name = restaurant_loc_map[loc][3]
-      nearby_restaurants += [(name, latlng)]
+      nearby_restaurants[name] = {'loc': loc, 'latlng': latlng, 'dist': dist}
 
   print nearby_restaurants
-  return nearby_restaurants
+  return {input_addr: {'latlng': input_latlng}}, nearby_restaurants
 
 # perform batch request
 # returns 
