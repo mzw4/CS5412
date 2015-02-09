@@ -14,17 +14,18 @@ var restaurant_item_template;
 $(function() {
   $main_container = $('.main_container');
   $input_panel = $('#input_panel');
+  $input_form = $('#input_form');
+  $loc_input_field = $('#loc_input_field');
+  $dist_input_field = $('#dist_input_field');
+  $error_text = $('.error_text');
+
   $info_panel = $('#info_panel');
   $results = $('#results')
   $map_canvas = $('#map-canvas');
   $spinner = $('#spinner');
-  $results_text = $('.results_text');
+  $result_count = $('#result_count');
+  $back_button = $('#back_button');
 
-  $main_container.click(function(event) {
-    event.stopPropagation();
-    console.log('poo');
-  })
-  
   // Set container dimensions
   view_port_dim = {x: $(window).width(), y: $(window).height()};
   $main_container.height(view_port_dim.y);
@@ -43,27 +44,50 @@ $(function() {
 
   // ----------------- Event handlers -----------------
 
-  $('#loc_input_form').submit(function(event) {
+  $input_form.submit(function(event) {
     event.preventDefault();
-    var input = $('#loc_input_field').val();
-    console.log('finding nearest');
-    find_nearest(input, map, infowindow);
+    var input = $loc_input_field.val();
+    var dist = $dist_input_field.val();
+
+    var error = '';
+    if(!input) {
+      error = 'No input location!';
+    } else if (!dist || isNaN(dist)) {
+      error = 'Distance must be a valid number!';
+    } else {
+      console.log('Searching restaurants...');
+      find_nearest(input, parseFloat(dist), map, infowindow);
+    }
+
+    if(error) {
+      $error_text.text(error).show().delay(2000).fadeOut(1000);
+    }
   });
 
   $results.on('click', 'li', function(event) {
-    // highlight this selection
+    if($selected_result == $(this)) return;
+
+    // highlight this selection and open the info
     if($selected_result) {
-      $selected_result.css({'bordesr': 'none'});
+      $selected_result.find('.name').removeClass('orange');
+      $selected_result.find('.restaurant_item .details').slideUp('fast');
     }
-    $(this).css({'borsder': '1px solid #ffcc66'});
+    $(this).find('.name').addClass('orange');
+    $(this).find('.restaurant_item .details').slideDown('fast');
 
     $selected_result = $(this);
     var name = $(this).data('name');
     open_info(markers[name], map, infowindow);
 
-    $selected_result.find('.restaurant_item .details').slideToggle('fast');
+    // $selected_result.find('.restaurant_item .details').slideToggle('fast');
   });
 
+  $back_button.on('click', function(event) {
+    // Hide input form and display results
+    $info_panel.fadeOut('fast', function() {
+      $input_form.fadeIn('fast');//.css({opacity: 0}).show().animate({opacity: 1}, 500);
+    });
+  })
 });
 
 // ------------------------ Functions ------------------------
@@ -120,26 +144,28 @@ function handleNoGeolocation(errorFlag) {
   map.setCenter(options.position);
 }
 
-function find_nearest(input, map, infowindow) {
+function find_nearest(input, dist, map, infowindow) {
   $spinner.show(500);
   $.ajax({
     type: 'POST',
     url: '/find_restaurants',
-    data: {input_location: input},
+    data: {input_location: input, dist: dist},
   }).done(function(data) {
-    $spinner.hide(500);
     console.log(data);
+    $spinner.hide(500);
     if(data) {
-      process_results(data);
-      place_markers(data, map, infowindow);
+      display_results(data);
+      place_markers(data, input, map, infowindow);
     } else {
       console.log('Invalid response');
     }
   }).fail(function(error, status) {
+    $spinner.hide(500);
+    alert(error.responseText + ' ' + status);
   });
 }
 
-function process_results(data) {
+function display_results(data) {
   var results = data['results']
 
   $results.html('');
@@ -151,11 +177,11 @@ function process_results(data) {
       .addClass('list-group-item').data('name', restaurant);
 
     var $details = $('<div></div>').addClass('restaurant_item').html(
-      '<span>' + restaurant + '</span>' +
+      '<div class="name">' + restaurant + '</div>' +
       '<div class="details">' +
-      '<div><b>Address:</b>' + restaurant_data['loc'] + '</div>' +
-      '<div><b>Coordinates:</b>' + restaurant_data['latlng']['lat'] + ',' + restaurant_data['latlng']['lng'] + '</div>' +
-      '<div><b>Distance:</b>' + restaurant_data['dist'] + '</div></div>')
+      '<div><b>Address: </b>' + restaurant_data['loc'] + '</div>' +
+      '<div><b>Coordinates: </b>' + restaurant_data['latlng']['lat'] + ', ' + restaurant_data['latlng']['lng'] + '</div>' +
+      '<div><b>Distance: </b>' + restaurant_data['dist'] + ' miles</div></div>')
     $entry.html($details);
 
     // $results.append(restaurant_item_template({
@@ -168,13 +194,19 @@ function process_results(data) {
     $results.append($entry);
   }
 
-  // Display results
-  $info_panel.css({opacity: 0}).show().animate({opacity: 1}, 500);
+  // Display restaurant count
+  $result_count.html(Object.keys(results).length);
+
+  // Hide input form and display results
+  $input_form.fadeOut('fast', function() {
+    $info_panel.fadeIn('fast');//.css({opacity: 0}).show().animate({opacity: 1}, 500);
+  });
+
   $results.css({'max-height':
-    (view_port_dim.y - $results_text.offset().top - $results_text.height() - 80) + 'px'})
+  (view_port_dim.y - $('.info_text').height() - $('.results_text').height() - 80) + 'px'});
 }
 
-function place_markers(data, map, infowindow) {
+function place_markers(data, input, map, infowindow) {
   var results = data['results'];
   for(var restaurant in results) {
     var restaurant_data = results[restaurant];
@@ -200,6 +232,25 @@ function place_markers(data, map, infowindow) {
     // console.log('setting center');
     map.setCenter(latlng);
   }
+
+  // Add input location marker
+  var latlng = data['input_data'][input]['latlng'];
+  latlng = new google.maps.LatLng(latlng['lat'], latlng['lng']);
+
+  var marker = new google.maps.Marker({
+    position: latlng,
+    map: map,
+    animation: google.maps.Animation.DROP,
+    title: input,
+  });
+  
+  open_info(marker, map, infowindow);
+  google.maps.event.addListener(marker, 'click', function() {
+    open_info(this, map, infowindow);
+  });
+
+  // Center map on input location
+  map.setCenter(latlng);  
 }
 
 function open_info(marker, map, infowindow) {

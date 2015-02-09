@@ -11,9 +11,10 @@ def hello():
 def ajax_find_restaurants():
   if request.method == 'POST':
     location = request.form['input_location']
-    print location
+    dist = request.form['dist']
+    print location, dist
 
-    input_data, results = find_nearest('Ft Lauderdale, FL 33324', 1)
+    input_data, results = find_nearest(location, float(dist))
     return jsonify({ 'input_data': input_data, 'results': results })
   else:
     return 'Error'

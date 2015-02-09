@@ -1,4 +1,4 @@
-import sys, requests, json, math
+import sys, requests, json, math, re, time
 
 _mq_key = 'Fmjtd%7Cluu8216rll%2C8g%3Do5-942ngy' 
 _mq_max_batch = 100
@@ -7,6 +7,8 @@ _dia_miles = 3963.191
 _dia_km = 6378.137
 
 url = 'http://www.cs.cornell.edu/Courses/CS5412/2015sp/_cuonly/restaurants_all.csv'
+
+latlng_regex = re.compile('^(\-?\d+(\.\d+)?),\s*(\-?\d+(\.\d+)?)$')
 
 # print 'Downloading restaurant data files'
 # response = requests.get(url, stream=True)
@@ -30,17 +32,24 @@ db = open('restaurants_all.csv', 'r')
 
 # find the nearest restaurants from the given address within the given distance in miles
 def find_nearest(input_addr, distance_threshold):
-  # Geocode input address if necessary
   print 'Finding specified location...'
-  request_url = 'http://www.mapquestapi.com/geocoding/v1/address?key=' + _mq_key + '&location=' + input_addr
+  start_t = time.time()
+
+  # Geocode input address if necessary
+  latlng = latlng_regex.match(input_addr)
+
+  request_url = 'http://www.mapquestapi.com/geocoding/v1/' + \
+    ('reverse' if latlng else 'address') + '?key=' + _mq_key + '&location=' + input_addr
+  print request_url
+
   response = requests.get(request_url)
   response_json = json.loads(response.content)
-  
   results = response_json['results']
+
   input_zipcode = ''
   input_latlng = ''
+
   if results:
-    loc = results[0]['providedLocation']['location']
     input_latlng = results[0]['locations'][0]['latLng']
     input_zipcode = results[0]['locations'][0]['postalCode']
   else:
@@ -95,7 +104,11 @@ def find_nearest(input_addr, distance_threshold):
       nearby_restaurants[name] = {'loc': loc, 'latlng': latlng, 'dist': dist}
 
   print nearby_restaurants
-  return {input_addr: {'latlng': input_latlng}}, nearby_restaurants
+  runtime = time.time() - start_t
+
+  input_data = {input_addr: {'latlng': input_latlng, 'dist': distance_threshold, 'runtime': runtime}}
+
+  return input_data, nearby_restaurants
 
 # perform batch request
 # returns 
@@ -122,3 +135,14 @@ def get_distance(latlng1, latlng2):
   dist = math.acos(
     math.sin(lat1)*math.sin(lat2) + math.cos(lat1)*math.cos(lat2)*math.cos(lng1-lng2))
   return _dia_miles * dist
+
+# format the results to the required output text format
+def format_results(input_data, nearby_restaurants):
+  output = ''
+  output = input_data['input_addr'] + '|' + str(input_data['distance_threshold']) + '|'\
+    + input_data['runtime'] + ' seconds\n'  
+  for restaurant, data in nearby_restaurants.items():
+    output += restaurant + ', ' + data['loc'] + '|' + data['dist'] + '\n'
+  return output
+
+
